@@ -1,0 +1,57 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Game, GamePlayer } from "@/lib/types";
+
+// Drives phase transitions (lobby -> question -> reveal -> leaderboard ->
+// finished), the current question payload, and the server timestamp each
+// client uses to compute its own local countdown.
+export function subscribeToGame(
+  supabase: SupabaseClient,
+  gameId: string,
+  onUpdate: (game: Game) => void,
+) {
+  const channel = supabase
+    .channel(`game:${gameId}`)
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` },
+      (payload) => onUpdate(payload.new as Game),
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+// Live player list for the lobby and live leaderboard. Player counts in a
+// classroom-sized game are small, so on any insert/update we just refetch
+// the full sorted list rather than reconciling diffs client-side.
+export function subscribeToPlayers(
+  supabase: SupabaseClient,
+  gameId: string,
+  onChange: (players: GamePlayer[]) => void,
+) {
+  const fetchPlayers = async () => {
+    const { data } = await supabase
+      .from("game_players")
+      .select("*")
+      .eq("game_id", gameId)
+      .order("score", { ascending: false });
+    onChange((data as GamePlayer[]) ?? []);
+  };
+
+  const channel = supabase
+    .channel(`game-players:${gameId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` },
+      () => fetchPlayers(),
+    )
+    .subscribe();
+
+  fetchPlayers();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
