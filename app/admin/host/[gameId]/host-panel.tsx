@@ -45,6 +45,20 @@ export function HostPanel({ initialGame, quizTitle }: { initialGame: Game; quizT
     }
   };
 
+  // Auto-reveal when the countdown hits zero, so players see the correct
+  // answer + explanation without waiting on the host to click. Only the host
+  // (authenticated, verify_jwt) can call advance-game, so this has to be
+  // triggered from here rather than from each player's screen.
+  const handleTimeExpired = async () => {
+    try {
+      const { game: updated } = await advanceGame(supabase, { gameId: game.id, action: "reveal" });
+      setGame(updated);
+    } catch {
+      // Benign race: the host may have already revealed manually, or the
+      // game already moved on — nothing to surface to the host here.
+    }
+  };
+
   const handleEnd = async () => {
     setBusy(true);
     try {
@@ -81,6 +95,7 @@ export function HostPanel({ initialGame, quizTitle }: { initialGame: Game; quizT
           <Timer
             startedAt={game.current_question_started_at!}
             timeLimitSeconds={(game.current_question_payload as QuestionPayloadLive).timeLimitSeconds}
+            onExpire={handleTimeExpired}
           />
           <QuestionCard
             body={(game.current_question_payload as QuestionPayloadLive).body}
