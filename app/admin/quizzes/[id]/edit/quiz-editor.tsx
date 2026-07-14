@@ -403,7 +403,7 @@ function QuestionEditor({
             />
           ) : (
             <RadioGroup
-              value={question.answer_options.find((o) => o.is_correct)?.id}
+              value={question.answer_options.find((o) => o.is_correct)?.id ?? ""}
               onValueChange={setCorrectOption}
               className="flex flex-col gap-2"
             >

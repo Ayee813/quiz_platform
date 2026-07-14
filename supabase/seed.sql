@@ -16,7 +16,7 @@ insert into auth.users (
   'authenticated',
   'authenticated',
   'admin@ceit.demo',
-  crypt('CyberDemo123!', gen_salt('bf')),
+  extensions.crypt('CyberDemo123!', extensions.gen_salt('bf')),
   now(),
   '{"provider":"email","providers":["email"]}',
   '{}',

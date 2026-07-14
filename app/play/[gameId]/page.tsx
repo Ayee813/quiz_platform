@@ -64,17 +64,23 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
   }, [gameId, router]);
 
   useEffect(() => {
+    let cancelled = false;
     let unsubGame: (() => void) | undefined;
     let unsubPlayers: (() => void) | undefined;
 
     (async () => {
       const { data } = await supabase.from("games").select("*").eq("id", gameId).single();
+      // Effect cleanup already ran (e.g. React Strict Mode's dev-only
+      // mount->cleanup->remount) before this awaited fetch resolved — don't
+      // subscribe on behalf of an effect run that's already torn down.
+      if (cancelled) return;
       if (data) setGame(data as Game);
       unsubGame = subscribeToGame(supabase, gameId, setGame);
       unsubPlayers = subscribeToPlayers(supabase, gameId, setPlayers);
     })();
 
     return () => {
+      cancelled = true;
       unsubGame?.();
       unsubPlayers?.();
     };
@@ -84,9 +90,13 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
   if (session === null) return null;
 
   const me = players.find((p) => p.id === session.playerId);
+  const hasAnsweredCurrent = submission?.questionId === game.current_question_id;
 
   const handleSubmit = async (optionId?: string, text?: string) => {
-    if (!game.current_question_id || submitting || submission) return;
+    // Guard on hasAnsweredCurrent, not on `submission` truthiness — `submission`
+    // stays set to the *previous* question's answer until a new one is submitted,
+    // so checking it directly would silently block every question after the first.
+    if (!game.current_question_id || submitting || hasAnsweredCurrent) return;
     setSubmitting(true);
     try {
       const result = await submitAnswer(supabase, {
@@ -104,8 +114,6 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
       setSubmitting(false);
     }
   };
-
-  const hasAnsweredCurrent = submission?.questionId === game.current_question_id;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-4 p-4">

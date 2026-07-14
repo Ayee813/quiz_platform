@@ -49,6 +49,7 @@ export function QuizCard({ quiz, questionCount }: { quiz: Quiz; questionCount: n
           variant="outline"
           size="sm"
           className="flex-1"
+          nativeButton={false}
           render={
             <Link href={`/admin/quizzes/${quiz.id}/edit`}>
               <Pencil />
