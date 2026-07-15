@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { useSound } from "@/components/sound-provider";
 
 export function Timer({
   startedAt,
@@ -15,6 +16,7 @@ export function Timer({
   className?: string;
   onExpire?: () => void;
 }) {
+  const { play } = useSound();
   const [remainingMs, setRemainingMs] = useState(() => {
     const elapsed = Date.now() - new Date(startedAt).getTime();
     return Math.max(0, timeLimitSeconds * 1000 - elapsed);
@@ -24,13 +26,22 @@ export function Timer({
     const totalMs = timeLimitSeconds * 1000;
     const startedMs = new Date(startedAt).getTime();
     let expired = false;
+    let lastSecond = Math.ceil(totalMs / 1000);
 
     const tick = () => {
       const elapsed = Date.now() - startedMs;
       const remaining = Math.max(0, totalMs - elapsed);
       setRemainingMs(remaining);
+
+      const currentSecond = Math.ceil(remaining / 1000);
+      if (currentSecond !== lastSecond) {
+        lastSecond = currentSecond;
+        if (currentSecond > 0 && currentSecond <= 3) play("tick");
+      }
+
       if (remaining === 0 && !expired) {
         expired = true;
+        play("timeup");
         onExpire?.();
       }
     };

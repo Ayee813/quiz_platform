@@ -2,6 +2,7 @@
 
 import { Trophy, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AvatarIcon } from "@/components/quiz/avatar-icon";
 import type { GamePlayer } from "@/lib/types";
 
 export function Leaderboard({
@@ -28,6 +29,7 @@ export function Leaderboard({
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold">
             {i === 0 ? <Trophy className="size-4 text-primary" /> : i + 1}
           </span>
+          <AvatarIcon avatar={player.avatar} className="size-9 shrink-0 rounded-full bg-muted" />
           <span className="flex-1 truncate font-medium">{player.nickname}</span>
           {player.current_streak >= 2 && (
             <span className="flex items-center gap-0.5 text-xs text-muted-foreground">

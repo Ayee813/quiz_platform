@@ -1,8 +1,27 @@
 import { errorResponse, handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { createServiceClient, getCallerUserId } from "../_shared/admin.ts";
+import { publicAudioUrl } from "../_shared/storage.ts";
 
 type Action = "start" | "next" | "reveal" | "leaderboard" | "end";
 const VALID_ACTIONS: Action[] = ["start", "next", "reveal", "leaderboard", "end"];
+
+// A track much slower/faster than this stops sounding like music. Playback
+// still hard-stops exactly at the timer's expiry client-side regardless, so
+// clamping here only affects how close the track gets to ending naturally
+// on its own — never whether audio can be heard after time's up.
+const MIN_PLAYBACK_RATE = 0.5;
+const MAX_PLAYBACK_RATE = 2.5;
+
+function pickCountdownTrack(
+  tracks: { storage_path: string; duration_seconds: number }[],
+  timeLimitSeconds: number,
+): { countdownMusicUrl: string; countdownPlaybackRate: number } | null {
+  if (tracks.length === 0) return null;
+  const track = tracks[Math.floor(Math.random() * tracks.length)];
+  const rawRate = track.duration_seconds / timeLimitSeconds;
+  const rate = Math.min(MAX_PLAYBACK_RATE, Math.max(MIN_PLAYBACK_RATE, rawRate));
+  return { countdownMusicUrl: publicAudioUrl(track.storage_path), countdownPlaybackRate: rate };
+}
 
 type QuestionRow = {
   id: string;
@@ -21,7 +40,10 @@ type QuestionRow = {
   }[];
 };
 
-function questionPayloadForQuestionPhase(q: QuestionRow) {
+function questionPayloadForQuestionPhase(
+  q: QuestionRow,
+  countdown: { countdownMusicUrl: string; countdownPlaybackRate: number } | null,
+) {
   return {
     id: q.id,
     type: q.type,
@@ -32,6 +54,8 @@ function questionPayloadForQuestionPhase(q: QuestionRow) {
     options: q.answer_options
       .sort((a, b) => a.order_index - b.order_index)
       .map((o) => ({ id: o.id, label: o.label })),
+    countdownMusicUrl: countdown?.countdownMusicUrl ?? null,
+    countdownPlaybackRate: countdown?.countdownPlaybackRate ?? null,
   };
 }
 
@@ -99,6 +123,23 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ game: updated });
     }
 
+    const { data: countdownTracks } = await admin
+      .from("quiz_countdown_tracks")
+      .select("sound_tracks(storage_path, duration_seconds)")
+      .eq("quiz_id", game.quiz_id);
+
+    const trackPool = (countdownTracks ?? [])
+      .map((row) => {
+        const t = row.sound_tracks as unknown as
+          | { storage_path: string; duration_seconds: number }
+          | { storage_path: string; duration_seconds: number }[]
+          | null;
+        return Array.isArray(t) ? t[0] : t;
+      })
+      .filter((t): t is { storage_path: string; duration_seconds: number } => !!t);
+
+    const countdown = pickCountdownTrack(trackPool, nextQuestion.time_limit_seconds);
+
     const { data: updated, error: updateError } = await admin
       .from("games")
       .update({
@@ -106,7 +147,7 @@ Deno.serve(async (req: Request) => {
         current_question_index: nextIndex,
         current_question_id: nextQuestion.id,
         current_question_started_at: new Date().toISOString(),
-        current_question_payload: questionPayloadForQuestionPhase(nextQuestion),
+        current_question_payload: questionPayloadForQuestionPhase(nextQuestion, countdown),
       })
       .eq("id", gameId)
       .select()

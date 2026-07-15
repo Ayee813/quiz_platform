@@ -72,18 +72,18 @@ export default function JoinPage({ params }: { params: Promise<{ pin: string }> 
 
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">ເລືອກໄອຄອນ</span>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {AVATAR_OPTIONS.map((option) => (
                   <button
                     key={option.key}
                     type="button"
                     onClick={() => setAvatar(option.key)}
                     className={cn(
-                      "flex aspect-square items-center justify-center rounded-lg border-2 bg-muted transition",
+                      "flex aspect-square items-center justify-center rounded-xl border-2 bg-muted p-1 transition",
                       avatar === option.key ? "border-primary bg-secondary" : "border-transparent",
                     )}
                   >
-                    <AvatarIcon avatar={option.key} className="size-5 text-foreground" />
+                    <AvatarIcon avatar={option.key} className="size-full rounded-lg" />
                   </button>
                 ))}
               </div>

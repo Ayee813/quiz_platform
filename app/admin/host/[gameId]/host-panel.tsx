@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, PartyPopper } from "lucide-react";
@@ -16,6 +16,8 @@ import { AnswerButton } from "@/components/quiz/answer-button";
 import { Timer } from "@/components/quiz/timer";
 import { Leaderboard } from "@/components/quiz/leaderboard";
 import { Podium } from "@/components/quiz/podium";
+import { useSound } from "@/components/sound-provider";
+import { useGameMusic } from "@/lib/use-game-music";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function HostPanel({ initialGame, quizTitle }: { initialGame: Game; quizTitle: string }) {
@@ -23,6 +25,8 @@ export function HostPanel({ initialGame, quizTitle }: { initialGame: Game; quizT
   const [game, setGame] = useState(initialGame);
   const [players, setPlayers] = useState<GamePlayer[]>([]);
   const [busy, setBusy] = useState(false);
+  const { play } = useSound();
+  const { stopCountdown } = useGameMusic(game);
 
   useEffect(() => {
     const unsubGame = subscribeToGame(supabase, initialGame.id, setGame);
@@ -33,11 +37,33 @@ export function HostPanel({ initialGame, quizTitle }: { initialGame: Game; quizT
     };
   }, [initialGame.id, supabase]);
 
+  // A little join chirp each time someone new appears in the lobby — but not
+  // for the initial batch a page refresh loads (prevPlayerCount starts at
+  // null specifically so that first population doesn't trigger it).
+  const prevPlayerCountRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (game.phase !== "lobby") return;
+    if (prevPlayerCountRef.current !== null && players.length > prevPlayerCountRef.current) {
+      play("join");
+    }
+    prevPlayerCountRef.current = players.length;
+  }, [players.length, game.phase, play]);
+
+  const podiumSoundPlayedRef = useRef(false);
+  useEffect(() => {
+    if (game.phase === "finished" && !podiumSoundPlayedRef.current) {
+      podiumSoundPlayedRef.current = true;
+      play("podium");
+    }
+  }, [game.phase, play]);
+
   const handleAction = async (action: AdvanceGameAction) => {
     setBusy(true);
     try {
       const { game: updated } = await advanceGame(supabase, { gameId: game.id, action });
       setGame(updated);
+      if (action === "start") play("start");
+      if (action === "reveal") play("reveal");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "ດຳເນີນການບໍ່ສຳເລັດ");
     } finally {
@@ -50,6 +76,7 @@ export function HostPanel({ initialGame, quizTitle }: { initialGame: Game; quizT
   // (authenticated, verify_jwt) can call advance-game, so this has to be
   // triggered from here rather than from each player's screen.
   const handleTimeExpired = async () => {
+    stopCountdown();
     try {
       const { game: updated } = await advanceGame(supabase, { gameId: game.id, action: "reveal" });
       setGame(updated);

@@ -1,5 +1,5 @@
 import { Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { AvatarIcon } from "@/components/quiz/avatar-icon";
 import type { GamePlayer } from "@/lib/types";
 
 export function LobbyPlayers({ players }: { players: GamePlayer[] }) {
@@ -14,11 +14,18 @@ export function LobbyPlayers({ players }: { players: GamePlayer[] }) {
           ລໍຖ້າຜູ້ຫຼິ້ນສະແກນ ຫຼື ພິມລະຫັດເຂົ້າຮ່ວມ...
         </p>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {players.map((p) => (
-            <Badge key={p.id} variant="secondary" className="px-3 py-1.5 text-sm">
-              {p.nickname}
-            </Badge>
+            // New rows get a fresh DOM node (existing players keep their key
+            // across re-renders), so this entrance animation only plays once,
+            // right when a player actually joins.
+            <div
+              key={p.id}
+              className="animate-in zoom-in-50 fade-in slide-in-from-bottom-2 flex flex-col items-center gap-1 duration-300"
+            >
+              <AvatarIcon avatar={p.avatar} className="size-14 rounded-full border-2 border-secondary bg-muted" />
+              <span className="max-w-16 truncate text-xs font-medium">{p.nickname}</span>
+            </div>
           ))}
         </div>
       )}

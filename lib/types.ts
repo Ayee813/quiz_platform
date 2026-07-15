@@ -8,8 +8,21 @@ export type Quiz = {
   description: string | null;
   cover_image_url: string | null;
   is_published: boolean;
+  background_track_id: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type SoundTrackType = "background" | "countdown";
+
+export type SoundTrack = {
+  id: string;
+  owner_id: string;
+  type: SoundTrackType;
+  title: string;
+  storage_path: string;
+  duration_seconds: number;
+  created_at: string;
 };
 
 export type Question = {
@@ -47,6 +60,11 @@ export type QuestionPayloadLive = {
   timeLimitSeconds: number;
   pointsBase: number;
   options: { id: string; label: string }[];
+  // Randomly picked per question from the quiz's countdown-track pool.
+  // countdownPlaybackRate = track.duration_seconds / timeLimitSeconds, so
+  // playing the track at that rate makes it end exactly when time runs out.
+  countdownMusicUrl?: string | null;
+  countdownPlaybackRate?: number | null;
 };
 
 // Sanitized question payload embedded in games.current_question_payload
@@ -72,6 +90,7 @@ export type Game = {
   current_question_id: string | null;
   current_question_started_at: string | null;
   current_question_payload: QuestionPayload | null;
+  background_music_url: string | null;
   created_at: string;
   ended_at: string | null;
 };

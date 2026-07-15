@@ -1,5 +1,6 @@
 import { errorResponse, handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { createServiceClient, getCallerUserId } from "../_shared/admin.ts";
+import { publicAudioUrl } from "../_shared/storage.ts";
 
 Deno.serve(async (req: Request) => {
   const preflight = handleOptions(req);
@@ -22,9 +23,13 @@ Deno.serve(async (req: Request) => {
 
   const admin = createServiceClient();
 
+  // Disambiguated relationship name required: quizzes<->sound_tracks has two
+  // possible paths (the direct background_track_id FK, and the many-to-many
+  // via quiz_countdown_tracks) — PostgREST rejects a bare "sound_tracks(...)"
+  // embed as ambiguous between them.
   const { data: quiz, error: quizError } = await admin
     .from("quizzes")
-    .select("id, owner_id")
+    .select("id, owner_id, background_track_id, sound_tracks!quizzes_background_track_id_fkey(storage_path)")
     .eq("id", quizId)
     .single();
 
@@ -41,6 +46,11 @@ Deno.serve(async (req: Request) => {
   const { data: pinData, error: pinError } = await admin.rpc("generate_game_pin");
   if (pinError || !pinData) return errorResponse("Failed to generate PIN", 500);
 
+  const backgroundTrack = Array.isArray(quiz.sound_tracks)
+    ? (quiz.sound_tracks[0] as { storage_path: string } | undefined)
+    : (quiz.sound_tracks as unknown as { storage_path: string } | null);
+  const backgroundMusicUrl = backgroundTrack ? publicAudioUrl(backgroundTrack.storage_path) : null;
+
   const { data: game, error: insertError } = await admin
     .from("games")
     .insert({
@@ -48,6 +58,7 @@ Deno.serve(async (req: Request) => {
       host_id: userId,
       pin: pinData,
       phase: "lobby",
+      background_music_url: backgroundMusicUrl,
     })
     .select("id, pin")
     .single();

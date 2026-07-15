@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, PartyPopper, ShieldCheck, X } from "lucide-react";
@@ -21,6 +21,9 @@ import { Timer } from "@/components/quiz/timer";
 import { Leaderboard } from "@/components/quiz/leaderboard";
 import { Podium } from "@/components/quiz/podium";
 import { AvatarIcon } from "@/components/quiz/avatar-icon";
+import { LobbyPlayers } from "@/components/host/lobby-players";
+import { useSound } from "@/components/sound-provider";
+import { useGameMusic } from "@/lib/use-game-music";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -86,6 +89,31 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
     };
   }, [gameId, supabase]);
 
+  const { play } = useSound();
+  const { stopCountdown } = useGameMusic(game);
+  const revealSoundPlayedRef = useRef<string | null>(null);
+  const podiumSoundPlayedRef = useRef(false);
+
+  // Correct/wrong (or a neutral chime if this player didn't answer) fires
+  // once per question, right when the reveal actually lands.
+  useEffect(() => {
+    if (!game || game.phase !== "reveal" || !game.current_question_id) return;
+    if (revealSoundPlayedRef.current === game.current_question_id) return;
+    revealSoundPlayedRef.current = game.current_question_id;
+    if (submission?.questionId === game.current_question_id) {
+      play(submission.result?.isCorrect ? "correct" : "wrong");
+    } else {
+      play("reveal");
+    }
+  }, [game, submission, play]);
+
+  useEffect(() => {
+    if (game?.phase === "finished" && !podiumSoundPlayedRef.current) {
+      podiumSoundPlayedRef.current = true;
+      play("podium");
+    }
+  }, [game?.phase, play]);
+
   if (session === undefined || !game) return <CenteredLoader />;
   if (session === null) return null;
 
@@ -119,17 +147,22 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-4 p-4">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AvatarIcon avatar={me?.avatar} className="size-5 text-primary" />
+          <AvatarIcon avatar={me?.avatar} className="size-8" />
           <span className="font-semibold">{session.nickname}</span>
         </div>
         <span className="font-bold tabular-nums text-primary">{me?.score ?? 0} ຄະແນນ</span>
       </header>
 
       {game.phase === "lobby" && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+        <div className="flex flex-1 flex-col items-center gap-6 pt-8 text-center">
           <ShieldCheck className="size-16 text-primary" />
-          <h1 className="text-xl font-bold">ທ່ານເຂົ້າຮ່ວມແລ້ວ!</h1>
-          <p className="text-muted-foreground">ລໍຖ້າຜູ້ດູແລລະບົບເລີ່ມເກມ... ({players.length} ຄົນເຂົ້າຮ່ວມ)</p>
+          <div>
+            <h1 className="text-xl font-bold">ທ່ານເຂົ້າຮ່ວມແລ້ວ!</h1>
+            <p className="text-muted-foreground">ລໍຖ້າຜູ້ດູແລລະບົບເລີ່ມເກມ...</p>
+          </div>
+          <div className="w-full">
+            <LobbyPlayers players={players} />
+          </div>
         </div>
       )}
 
@@ -141,6 +174,7 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
           answered={hasAnsweredCurrent}
           submitting={submitting}
           onSubmit={handleSubmit}
+          onExpire={stopCountdown}
         />
       )}
 
@@ -185,12 +219,14 @@ function QuestionPhase({
   answered,
   submitting,
   onSubmit,
+  onExpire,
 }: {
   payload: QuestionPayloadLive;
   startedAt: string;
   answered: boolean;
   submitting: boolean;
   onSubmit: (optionId?: string, text?: string) => void;
+  onExpire: () => void;
 }) {
   // This component is remounted (via `key={questionId}`) each time a new
   // question starts, so this local state naturally resets with it.
@@ -203,7 +239,10 @@ function QuestionPhase({
       <Timer
         startedAt={startedAt}
         timeLimitSeconds={payload.timeLimitSeconds}
-        onExpire={() => setExpired(true)}
+        onExpire={() => {
+          setExpired(true);
+          onExpire();
+        }}
       />
 
       {answered ? (

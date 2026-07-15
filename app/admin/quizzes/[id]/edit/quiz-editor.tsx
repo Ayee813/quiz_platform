@@ -27,6 +27,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/utils/supabase/client";
+import { MusicSettings } from "@/app/admin/quizzes/[id]/edit/music-settings";
 import type { AnswerOption, QuestionType, QuestionWithOptions, Quiz } from "@/lib/types";
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
@@ -185,6 +186,8 @@ export function QuizEditor({
           </div>
         </CardContent>
       </Card>
+
+      <MusicSettings quizId={quiz.id} initialBackgroundTrackId={quiz.background_track_id} />
 
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-muted-foreground">ຄຳຖາມ ({questions.length})</h2>
