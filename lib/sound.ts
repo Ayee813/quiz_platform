@@ -17,6 +17,15 @@ export type SoundName =
 
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
+// Kept as module state (not just on the gain node) so values set before the
+// AudioContext lazily exists still apply once it's created.
+let masterMuted = false;
+let masterVolume = 1;
+
+function applyMasterGain() {
+  if (!ctx || !masterGain) return;
+  masterGain.gain.setTargetAtTime(masterMuted ? 0 : masterVolume, ctx.currentTime, 0.05);
+}
 
 function getContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -25,7 +34,7 @@ function getContext(): AudioContext | null {
   if (!ctx) {
     ctx = new Ctor();
     masterGain = ctx.createGain();
-    masterGain.gain.value = 1;
+    masterGain.gain.value = masterMuted ? 0 : masterVolume;
     masterGain.connect(ctx.destination);
   }
   if (ctx.state === "suspended") void ctx.resume();
@@ -112,6 +121,13 @@ export function playSound(name: SoundName) {
 }
 
 export function setMasterMuted(muted: boolean) {
-  if (!masterGain || !ctx) return;
-  masterGain.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.05);
+  masterMuted = muted;
+  applyMasterGain();
+}
+
+// Volume for the synthesized UI/effect sounds (0–1), set from the admin's
+// sound settings panel.
+export function setMasterVolume(volume: number) {
+  masterVolume = Math.min(1, Math.max(0, volume));
+  applyMasterGain();
 }

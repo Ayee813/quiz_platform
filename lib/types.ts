@@ -63,10 +63,9 @@ export type QuestionPayloadLive = {
   pointsBase: number;
   options: { id: string; label: string }[];
   // Randomly picked per question from the quiz's countdown-track pool.
-  // countdownPlaybackRate = track.duration_seconds / timeLimitSeconds, so
-  // playing the track at that rate makes it end exactly when time runs out.
+  // Played at normal speed; the client times its start so it finishes
+  // exactly as the countdown reaches zero (see lib/use-game-music.ts).
   countdownMusicUrl?: string | null;
-  countdownPlaybackRate?: number | null;
 };
 
 // Sanitized question payload embedded in games.current_question_payload

@@ -289,3 +289,80 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   Scoreboard animations (leaderboard rows, +score chips, podium)
+   The JS-driven parts (count-up, FLIP rank swaps) live in
+   components/quiz/score-anim.tsx.
+   ============================================================ */
+@keyframes leaderboard-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.leaderboard-row-in {
+  animation: leaderboard-row-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes score-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(6px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.score-pop {
+  animation: score-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+@keyframes podium-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.podium-pop {
+  animation: podium-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes podium-bar-in {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.podium-bar-in {
+  transform-origin: bottom;
+  animation: podium-bar-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-row-in,
+  .score-pop,
+  .podium-pop,
+  .podium-bar-in {
+    animation: none;
+  }
+}
