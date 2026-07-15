@@ -11,14 +11,16 @@ const COUNTDOWN_VOLUME = 0.4;
 // phases) and, during 'question', a fresh countdown track per question at
 // the playback rate advance-game already computed so it lines up with that
 // question's own time limit. Used by both the host panel and the player
-// screen — each device runs its own copy.
-export function useGameMusic(game: Game | null) {
+// screen — each device runs its own copy. Pass `enabled: false` to skip all
+// music playback (e.g. the player screen, which keeps only SFX).
+export function useGameMusic(game: Game | null, options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true;
   const { muted } = useSound();
   const bgRef = useRef<HTMLAudioElement | null>(null);
   const countdownRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const url = game?.background_music_url ?? null;
+    const url = enabled ? (game?.background_music_url ?? null) : null;
     if (!url) {
       bgRef.current?.pause();
       bgRef.current = null;
@@ -52,7 +54,7 @@ export function useGameMusic(game: Game | null) {
     countdownRef.current?.pause();
     countdownRef.current = null;
 
-    if (game?.phase !== "question" || !game.current_question_payload) return;
+    if (!enabled || game?.phase !== "question" || !game.current_question_payload) return;
     const payload = game.current_question_payload as QuestionPayloadLive;
     if (!payload.countdownMusicUrl) return;
 

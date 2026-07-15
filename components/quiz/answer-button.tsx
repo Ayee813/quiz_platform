@@ -1,6 +1,6 @@
 "use client";
 
-import { Circle, Square, Triangle, Diamond, Check, X } from "lucide-react";
+import { Circle, Square, Triangle, Diamond, Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SHAPES = [Triangle, Diamond, Circle, Square];
@@ -17,6 +17,7 @@ export function AnswerButton({
   onClick,
   disabled,
   selected,
+  pending,
   reveal,
 }: {
   index: number;
@@ -24,6 +25,8 @@ export function AnswerButton({
   onClick?: () => void;
   disabled?: boolean;
   selected?: boolean;
+  /** True while this specific option's submission is in flight — shows a spinner in place of the shape. */
+  pending?: boolean;
   /** Present once the answer is revealed: shows correct/wrong state + count. */
   reveal?: { isCorrect: boolean; count: number };
 }) {
@@ -40,12 +43,20 @@ export function AnswerButton({
         "relative flex min-h-20 w-full items-center gap-3 rounded-xl px-5 py-4 text-left text-lg font-semibold text-white shadow-sm transition disabled:cursor-not-allowed",
         colorClass,
         reveal && !reveal.isCorrect && "opacity-40",
+        !reveal && disabled && !selected && "opacity-40",
         selected && !reveal && "ring-4 ring-ring ring-offset-2",
         reveal?.isCorrect && "ring-4 ring-primary ring-offset-2",
       )}
     >
-      <Shape className="size-6 shrink-0" fill="currentColor" />
+      {pending ? (
+        <Loader2 className="size-6 shrink-0 animate-spin" />
+      ) : (
+        <Shape className="size-6 shrink-0" fill="currentColor" />
+      )}
       <span className="flex-1 break-words">{label}</span>
+      {selected && !reveal && !pending && (
+        <Check className="size-5 shrink-0 rounded-full bg-black/15 p-0.5" />
+      )}
       {reveal && (
         <span className="flex shrink-0 items-center gap-1 rounded-full bg-black/15 px-2 py-1 text-sm">
           {reveal.isCorrect ? <Check className="size-4" /> : <X className="size-4" />}

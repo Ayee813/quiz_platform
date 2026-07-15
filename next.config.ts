@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // trailing slash) — Next matches this list directly against the request's
   // Origin hostname. Quick tunnels (trycloudflare.com) mint a new random
   // subdomain every restart, so a wildcard is used instead of today's URL.
-  allowedDevOrigins: ["192.168.1.12", "*.trycloudflare.com"],
+  allowedDevOrigins: ["192.168.1.12", "*.trycloudflare.com", "192.168.15.254"],
 };
 
 export default nextConfig;

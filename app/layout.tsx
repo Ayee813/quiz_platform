@@ -3,6 +3,7 @@ import { Noto_Sans_Lao, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { SoundProvider } from "@/components/sound-provider";
 import { SoundToggle } from "@/components/sound-toggle";
+import { CyberGrid } from "@/components/cyber-grid";
 import "./globals.css";
 
 const notoSansLao = Noto_Sans_Lao({
@@ -29,13 +30,14 @@ export default function RootLayout({
   return (
     <html
       lang="lo"
-      className={`${notoSansLao.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${notoSansLao.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <CyberGrid />
         <SoundProvider>
           {children}
           <SoundToggle />
-          <Toaster theme="light" position="top-center" richColors />
+          <Toaster theme="dark" position="top-center" richColors />
         </SoundProvider>
       </body>
     </html>

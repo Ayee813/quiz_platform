@@ -100,6 +100,32 @@ Deno.serve(async (req: Request) => {
     return errorResponse("Reveal the current question before advancing", 409);
   }
 
+  // Auto-insert the leaderboard every N questions (per-quiz config). Only
+  // checked coming straight from "reveal" — once the host is already on the
+  // leaderboard, "next" always proceeds to the next question, so this can't loop.
+  if (action === "next" && game.phase === "reveal") {
+    const { data: quizRow } = await admin
+      .from("quizzes")
+      .select("leaderboard_interval")
+      .eq("id", game.quiz_id)
+      .single();
+
+    const interval = quizRow?.leaderboard_interval ?? 0;
+    const questionsCompleted = game.current_question_index + 1;
+
+    if (interval > 0 && questionsCompleted % interval === 0) {
+      const { data: updated, error: updateError } = await admin
+        .from("games")
+        .update({ phase: "leaderboard" })
+        .eq("id", gameId)
+        .select()
+        .single();
+
+      if (updateError) return errorResponse(updateError.message, 500);
+      return jsonResponse({ game: updated });
+    }
+  }
+
   if (action === "start" || action === "next") {
     const { data: questions, error: questionsError } = await admin
       .from("questions")

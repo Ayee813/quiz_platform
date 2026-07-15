@@ -90,7 +90,7 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
   }, [gameId, supabase]);
 
   const { play } = useSound();
-  const { stopCountdown } = useGameMusic(game);
+  const { stopCountdown } = useGameMusic(game, { enabled: false });
   const revealSoundPlayedRef = useRef<string | null>(null);
   const podiumSoundPlayedRef = useRef(false);
 
@@ -119,6 +119,14 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
 
   const me = players.find((p) => p.id === session.playerId);
   const hasAnsweredCurrent = submission?.questionId === game.current_question_id;
+
+  // The player's score updates in the database (and via realtime) the instant
+  // they submit an answer — well before the reveal — which would let a player
+  // spot correct/wrong just by watching this number tick up mid-question. Hide
+  // that increment until the question actually reveals by subtracting the
+  // current question's pending points back out while phase === "question".
+  const pendingPoints = hasAnsweredCurrent ? (submission?.result?.pointsAwarded ?? 0) : 0;
+  const displayedScore = (me?.score ?? 0) - (game.phase === "question" ? pendingPoints : 0);
 
   const handleSubmit = async (optionId?: string, text?: string) => {
     // Guard on hasAnsweredCurrent, not on `submission` truthiness — `submission`
@@ -150,7 +158,7 @@ export default function PlayPage({ params }: { params: Promise<{ gameId: string 
           <AvatarIcon avatar={me?.avatar} className="size-8" />
           <span className="font-semibold">{session.nickname}</span>
         </div>
-        <span className="font-bold tabular-nums text-primary">{me?.score ?? 0} ຄະແນນ</span>
+        <span className="font-bold tabular-nums text-primary">{displayedScore} ຄະແນນ</span>
       </header>
 
       {game.phase === "lobby" && (
@@ -232,7 +240,16 @@ function QuestionPhase({
   // question starts, so this local state naturally resets with it.
   const [answerText, setAnswerText] = useState("");
   const [expired, setExpired] = useState(false);
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const locked = answered || expired;
+
+  const handleOptionClick = (optionId: string) => {
+    // Instant tactile + visual acknowledgement before the network round trip
+    // even starts — the ring/spinner below then carries it through to reveal.
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(15);
+    setSelectedOptionId(optionId);
+    onSubmit(optionId);
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -262,7 +279,9 @@ function QuestionPhase({
               className="flex gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (answerText.trim()) onSubmit(undefined, answerText.trim());
+                if (!answerText.trim()) return;
+                if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(15);
+                onSubmit(undefined, answerText.trim());
               }}
             >
               <Input
@@ -273,6 +292,7 @@ function QuestionPhase({
                 disabled={submitting || locked}
               />
               <Button type="submit" disabled={submitting || locked || !answerText.trim()}>
+                {submitting && <Loader2 className="size-4 animate-spin" />}
                 ສົ່ງ
               </Button>
             </form>
@@ -284,7 +304,9 @@ function QuestionPhase({
                   index={i}
                   label={option.label}
                   disabled={submitting || locked}
-                  onClick={() => onSubmit(option.id)}
+                  selected={selectedOptionId === option.id}
+                  pending={submitting && selectedOptionId === option.id}
+                  onClick={() => handleOptionClick(option.id)}
                 />
               ))}
             </div>

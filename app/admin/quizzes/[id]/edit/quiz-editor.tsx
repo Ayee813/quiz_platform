@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  ImageOff,
   Loader2,
   Plus,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +31,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/utils/supabase/client";
 import { MusicSettings } from "@/app/admin/quizzes/[id]/edit/music-settings";
+import { deleteQuestionImage, uploadQuestionImage } from "@/lib/image-upload";
 import type { AnswerOption, QuestionType, QuestionWithOptions, Quiz } from "@/lib/types";
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
@@ -184,6 +188,25 @@ export function QuizEditor({
               onCheckedChange={(checked) => saveQuizField({ is_published: checked })}
             />
           </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">ສະແດງອັນດັບຄະແນນອັດຕະໂນມັດ</span>
+              <span className="text-xs text-muted-foreground">
+                ສະແດງທຸກໆ N ຄຳຖາມ (0 = ປິດ, ຕ້ອງກົດສະແດງອັນດັບເອງ)
+              </span>
+            </div>
+            <Input
+              type="number"
+              min={0}
+              max={50}
+              value={quiz.leaderboard_interval}
+              onChange={(e) => setQuiz((p) => ({ ...p, leaderboard_interval: Number(e.target.value) }))}
+              onBlur={(e) =>
+                saveQuizField({ leaderboard_interval: Math.max(0, Number(e.target.value) || 0) })
+              }
+              className="w-20 text-center"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -205,6 +228,7 @@ export function QuizEditor({
             index={i}
             total={questions.length}
             supabase={supabase}
+            ownerId={quiz.owner_id}
             onChange={(patch) => updateQuestion(question.id, patch)}
             onDelete={() => deleteQuestion(question.id)}
             onMove={(dir) => moveQuestion(question.id, dir)}
@@ -225,6 +249,7 @@ function QuestionEditor({
   index,
   total,
   supabase,
+  ownerId,
   onChange,
   onDelete,
   onMove,
@@ -233,13 +258,39 @@ function QuestionEditor({
   index: number;
   total: number;
   supabase: ReturnType<typeof createClient>;
+  ownerId: string;
   onChange: (patch: Partial<QuestionWithOptions>) => void;
   onDelete: () => void;
   onMove: (direction: -1 | 1) => void;
 }) {
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const saveField = async (patch: Record<string, unknown>) => {
     const { error } = await supabase.from("questions").update(patch).eq("id", question.id);
     if (error) toast.error("ບັນທຶກບໍ່ສຳເລັດ: " + error.message);
+  };
+
+  const uploadImage = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      const publicUrl = await uploadQuestionImage(supabase, { file, ownerId });
+      const previousUrl = question.image_url;
+      onChange({ image_url: publicUrl });
+      await saveField({ image_url: publicUrl });
+      if (previousUrl) await deleteQuestionImage(supabase, previousUrl);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "ອັບໂຫຼດຮູບພາບບໍ່ສຳເລັດ");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = async () => {
+    const previousUrl = question.image_url;
+    onChange({ image_url: null });
+    await saveField({ image_url: null });
+    if (previousUrl) await deleteQuestionImage(supabase, previousUrl);
   };
 
   const changeType = async (type: QuestionType) => {
@@ -370,12 +421,53 @@ function QuestionEditor({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>ຮູບພາບ URL (ບໍ່ບັງຄັບ)</Label>
+          <Label>ຮູບພາບ (ບໍ່ບັງຄັບ)</Label>
+          {question.image_url && (
+            <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-lg border">
+              <Image src={question.image_url} alt="" fill unoptimized className="object-cover" />
+            </div>
+          )}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadImage(file);
+              e.target.value = "";
+            }}
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploadingImage}
+              onClick={() => imageInputRef.current?.click()}
+            >
+              {uploadingImage ? <Loader2 className="animate-spin" /> : <Upload />}
+              {question.image_url ? "ປ່ຽນຮູບພາບ" : "ອັບໂຫຼດຮູບພາບ"}
+            </Button>
+            {question.image_url && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive"
+                disabled={uploadingImage}
+                onClick={removeImage}
+              >
+                <ImageOff />
+                ລຶບຮູບພາບ
+              </Button>
+            )}
+          </div>
           <Input
             value={question.image_url ?? ""}
             onChange={(e) => onChange({ image_url: e.target.value })}
             onBlur={(e) => saveField({ image_url: e.target.value || null })}
-            placeholder="https://..."
+            placeholder="ຫຼືວາງ URL ຮູບພາບ..."
           />
         </div>
 

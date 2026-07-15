@@ -49,62 +49,63 @@
 }
 
 /*
-  CEIT Cyber Security — Light theme
-  Built around the logo green (~oklch 0.52 0.15 148).
-  Light theme only, as requested.
+  CEIT Cyber Security — Dark "hacker" theme
+  Neon green (~oklch 0.75 0.21 148) on near-black green-tinted surfaces.
+  Dark theme only; <html> carries the `dark` class so shadcn dark:
+  variants stay in sync with these tokens.
 */
 :root {
-  /* Surfaces: white with a faint cool-green tint so it doesn't read as sterile gray */
-  --background: oklch(0.995 0.004 150);
-  --foreground: oklch(0.22 0.03 150);
+  /* Surfaces: near-black with a green cast — terminal vibes, not flat gray */
+  --background: oklch(0.14 0.018 150);
+  --foreground: oklch(0.92 0.03 150);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.03 150);
+  --card: oklch(0.185 0.022 150);
+  --card-foreground: oklch(0.92 0.03 150);
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.03 150);
+  --popover: oklch(0.185 0.022 150);
+  --popover-foreground: oklch(0.92 0.03 150);
 
-  /* Primary = the logo green */
-  --primary: oklch(0.52 0.15 148);
-  --primary-foreground: oklch(0.99 0.01 150);
+  /* Primary = neon terminal green */
+  --primary: oklch(0.75 0.21 148);
+  --primary-foreground: oklch(0.15 0.04 150);
 
-  /* Secondary = soft green wash for chips, quiet buttons */
-  --secondary: oklch(0.95 0.035 150);
-  --secondary-foreground: oklch(0.34 0.09 148);
+  /* Secondary = dark green wash for chips, quiet buttons */
+  --secondary: oklch(0.25 0.04 150);
+  --secondary-foreground: oklch(0.86 0.08 150);
 
   /* Muted = low-emphasis backgrounds and helper text */
-  --muted: oklch(0.96 0.02 150);
-  --muted-foreground: oklch(0.50 0.04 150);
+  --muted: oklch(0.22 0.03 150);
+  --muted-foreground: oklch(0.66 0.04 150);
 
   /* Accent = hover states / highlighted rows */
-  --accent: oklch(0.92 0.06 150);
-  --accent-foreground: oklch(0.30 0.10 148);
+  --accent: oklch(0.29 0.06 150);
+  --accent-foreground: oklch(0.9 0.09 150);
 
   /* Destructive stays red for wrong answers / danger actions */
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.65 0.21 25);
 
-  --border: oklch(0.90 0.025 150);
-  --input: oklch(0.90 0.025 150);
-  --ring: oklch(0.52 0.15 148);
+  --border: oklch(0.32 0.05 150);
+  --input: oklch(0.3 0.05 150);
+  --ring: oklch(0.75 0.21 148);
 
-  /* Chart palette: green-forward spectrum for leaderboards & stats */
-  --chart-1: oklch(0.52 0.15 148);   /* logo green */
-  --chart-2: oklch(0.64 0.13 160);   /* lighter green */
-  --chart-3: oklch(0.70 0.11 185);   /* teal */
-  --chart-4: oklch(0.75 0.13 130);   /* lime-green */
-  --chart-5: oklch(0.42 0.12 150);   /* deep green */
+  /* Chart palette: neon-green spectrum for leaderboards & stats */
+  --chart-1: oklch(0.75 0.21 148);   /* neon green */
+  --chart-2: oklch(0.68 0.15 165);   /* spring green */
+  --chart-3: oklch(0.72 0.13 190);   /* cyan-teal */
+  --chart-4: oklch(0.8 0.17 130);    /* lime */
+  --chart-5: oklch(0.55 0.13 150);   /* deep green */
 
   --radius: 0.625rem;
 
   /* Sidebar / host-panel surfaces */
-  --sidebar: oklch(0.98 0.012 150);
-  --sidebar-foreground: oklch(0.22 0.03 150);
-  --sidebar-primary: oklch(0.52 0.15 148);
-  --sidebar-primary-foreground: oklch(0.99 0.01 150);
-  --sidebar-accent: oklch(0.92 0.06 150);
-  --sidebar-accent-foreground: oklch(0.30 0.10 148);
-  --sidebar-border: oklch(0.90 0.025 150);
-  --sidebar-ring: oklch(0.52 0.15 148);
+  --sidebar: oklch(0.165 0.02 150);
+  --sidebar-foreground: oklch(0.92 0.03 150);
+  --sidebar-primary: oklch(0.75 0.21 148);
+  --sidebar-primary-foreground: oklch(0.15 0.04 150);
+  --sidebar-accent: oklch(0.29 0.06 150);
+  --sidebar-accent-foreground: oklch(0.9 0.09 150);
+  --sidebar-border: oklch(0.32 0.05 150);
+  --sidebar-ring: oklch(0.75 0.21 148);
 }
 
 @layer base {
@@ -116,5 +117,175 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ============================================================
+   Neon 3D grid background (see components/cyber-grid.tsx)
+   Pure CSS, GPU-friendly: an animated perspective floor rushing
+   toward the viewer, a glowing horizon, a faint "sky" grid and
+   one scan beam. Sits behind all content (z-index: -10) and is
+   fogged/vignetted so text and cards always stay readable.
+   ============================================================ */
+.cyber-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Faint flat grid in the upper "sky", fading out toward the horizon. */
+.cyber-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 46% 0;
+  background-image:
+    linear-gradient(to right, oklch(0.75 0.21 148 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.75 0.21 148 / 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.9) 0%,
+    rgb(0 0 0 / 0.4) 60%,
+    transparent 100%
+  );
+}
+
+/* Subtle CRT scanlines over the whole backdrop for terminal texture. */
+.cyber-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.14) 0px,
+    rgb(0 0 0 / 0.14) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.4;
+}
+
+/* Ambient neon glow: energy source at the horizon, faint wash above. */
+.cyber-grid-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(55% 32% at 50% 54%, oklch(0.75 0.21 148 / 0.14), transparent 70%),
+    radial-gradient(80% 55% at 50% 0%, oklch(0.75 0.21 148 / 0.05), transparent 70%);
+}
+
+/* Glowing horizon line where sky meets the 3D floor. */
+.cyber-grid-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 54%;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent 4%,
+    oklch(0.75 0.21 148 / 0.55) 50%,
+    transparent 96%
+  );
+  box-shadow:
+    0 0 22px 2px oklch(0.75 0.21 148 / 0.35),
+    0 0 80px 10px oklch(0.75 0.21 148 / 0.14);
+}
+
+/* 3D perspective floor: a rotated neon grid plane scrolling toward
+   the viewer. Animation translates by exactly one cell, so it loops
+   seamlessly using only a GPU-composited transform. */
+.cyber-grid-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 54%;
+  bottom: 0;
+  perspective: 460px;
+  perspective-origin: 50% 0%;
+  overflow: hidden;
+}
+
+.cyber-grid-floor::before {
+  content: "";
+  position: absolute;
+  left: -70%;
+  right: -70%;
+  top: 0;
+  height: 400%;
+  background-image:
+    linear-gradient(to right, oklch(0.75 0.21 148 / 0.3) 1.5px, transparent 1.5px),
+    linear-gradient(to bottom, oklch(0.75 0.21 148 / 0.3) 1.5px, transparent 1.5px);
+  background-size: 52px 52px;
+  transform-origin: 50% 0;
+  will-change: transform;
+  animation: cyber-floor 2s linear infinite;
+}
+
+/* Distance fog: melts the far edge of the floor into the horizon glow. */
+.cyber-grid-floor::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    oklch(0.14 0.018 150 / 0.95) 0%,
+    oklch(0.14 0.018 150 / 0.4) 30%,
+    transparent 65%
+  );
+}
+
+@keyframes cyber-floor {
+  from {
+    transform: rotateX(62deg) translate3d(0, 0, 0);
+  }
+  to {
+    transform: rotateX(62deg) translate3d(0, 52px, 0);
+  }
+}
+
+/* Horizontal scan beam drifting down the page. */
+.cyber-grid-beam-h {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 10%,
+    oklch(0.75 0.21 148 / 0.4) 50%,
+    transparent 90%
+  );
+  box-shadow: 0 0 16px 1px oklch(0.75 0.21 148 / 0.25);
+  will-change: transform;
+  animation: cyber-beam-h 14s linear infinite;
+}
+
+@keyframes cyber-beam-h {
+  0% {
+    transform: translate3d(0, -5vh, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 105vh, 0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyber-grid-beam-h {
+    display: none;
+  }
+  .cyber-grid-floor::before {
+    animation: none;
   }
 }

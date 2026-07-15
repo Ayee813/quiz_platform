@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-b from-secondary/40 to-background p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-b from-secondary/30 to-transparent p-6">
       <div className="flex flex-col items-center gap-2 text-center">
         <ShieldCheck className="size-10 text-primary" />
         <h1 className="text-xl font-bold">ເຂົ້າສູ່ລະບົບຜູ້ດູແລ</h1>

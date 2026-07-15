@@ -48,7 +48,7 @@ export default function JoinPage({ params }: { params: Promise<{ pin: string }> 
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-b from-secondary/40 to-background p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-b from-secondary/30 to-transparent p-6">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center gap-1 text-center">
           <span className="text-xs font-medium text-muted-foreground">ລະຫັດເກມ</span>

@@ -9,6 +9,8 @@ export type Quiz = {
   cover_image_url: string | null;
   is_published: boolean;
   background_track_id: string | null;
+  // Auto-show the leaderboard every N questions; 0 disables it.
+  leaderboard_interval: number;
   created_at: string;
   updated_at: string;
 };
